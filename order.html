@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Konfirmasi Order</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+    .banner { background:#fff3cd; color:#856404; padding:12px; border-radius:6px; border:1px solid #ffeeba; margin-bottom:14px; }
+    button { padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    .wa { background: #25D366; color: white; border: none; border-radius: 6px; }
+    .confirm { background: #5865F2; color: white; border: none; border-radius: 6px; }
+    .hint { color: #666; font-size: 14px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Konfirmasi Order</h1>
+
+  <!-- Informasi toko (Diperbarui sesuai permintaan) -->
+  <div class="banner">
+    Store tutup hingga waktu yang tidak di tentukan karena ada masalah teknis, jika masalah teknis sudah teratasi informasi dan pembelian robux bisa.di lakukan, terimakasih
+  </div>
+
+  <div class="card">
+    <p>
+      Gunakan tombol WhatsApp untuk mengirim pesan konfirmasi otomatis ke admin, lalu kembali dan klik "Saya sudah kirim pesan" untuk mengirim notifikasi ke Discord.
+    </p>
+
+    <div style="margin-bottom:12px;">
+      <label>Order ID: <input id="orderInput" value="" /></label>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>Nama (opsional): <input id="nameInput" value="" /></label>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>No HP (opsional, format E.164 tanpa +, ex: 62812...): <input id="phoneInput" value="" /></label>
+    </div>
+
+    <p>
+      <button id="waBtn" class="wa">Buka WhatsApp &isi pesan</button>
+      <button id="confirmBtn" class="confirm">Saya sudah kirim pesan</button>
+    </p>
+
+    <p class="hint">
+      Tips: buka halaman ini dengan ?order=SOL-XXXXX untuk mengisi otomatis. Contoh: order.html?order=SOL-MUEEB17O
+    </p>
+
+    <div id="status" class="hint"></div>
+  </div>
+
+<script>
+  // Ambil orderId dari query string atau input
+  function getQuery(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+
+  const defaultOrder = getQuery('order') || 'SOL-MUEEB17O';
+  const orderInput = document.getElementById('orderInput');
+  const nameInput = document.getElementById('nameInput');
+  const phoneInput = document.getElementById('phoneInput');
+  const waBtn = document.getElementById('waBtn');
+  const confirmBtn = document.getElementById('confirmBtn');
+  const statusDiv = document.getElementById('status');
+
+  orderInput.value = defaultOrder;
+
+  function buildMessage(orderId, name) {
+    const displayName = name ? name : 'pelanggan';
+    return `Halo admin Solstice Interactive, saya ingin konfirmasi order ${orderId}. Saya sudah membayar via QRIS GoPay Merchant. - ${displayName}`;
+  }
+
+  waBtn.addEventListener('click', () => {
+    const orderId = orderInput.value.trim();
+    const name = nameInput.value.trim();
+    if (!orderId) {
+      alert('Isi order id dulu');
+      return;
+    }
+    const message = buildMessage(orderId, name);
+    const waUrl = `https://wa.me/6285780024940?text=${encodeURIComponent(message)}`;
+    // buka di tab baru
+    window.open(waUrl, '_blank');
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    const orderId = orderInput.value.trim();
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+
+    if (!orderId) {
+      alert('Isi order id dulu');
+      return;
+    }
+
+    statusDiv.textContent = 'Mengirim notifikasi ke server...';
+
+    try {
+      const res = await fetch('/api/confirm-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, customerName: name || null, customerPhone: phone || null })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        statusDiv.textContent = 'Berhasil: ' + (data.message || 'Notifikasi dikirim ke Discord');
+      } else {
+        statusDiv.textContent = 'Gagal: ' + (data.message || JSON.stringify(data));
+      }
+    } catch (err) {
+      statusDiv.textContent = 'Error: ' + err.message;
+    }
+  });
+</script>
+</body>
+</html>
